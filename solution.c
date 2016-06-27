@@ -1,39 +1,38 @@
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <mqueue.h>
 #include <errno.h>
+#include <string.h>
+#include <malloc.h>
 
 int main()
 {
-	key_t key = ftok("/tmp/msg.temp", 1);
-
-	int q_id = msgget(key, IPC_CREAT | 0777 );
-
+	//mqd_t mq_open(const char *name, int oflag, mode_t mode, struct mq_attr *attr);
+	//int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio);
+	//ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio);
+	struct mq_attr attr;
+	attr.mq_maxmsg = 5;
+	attr.mq_msgsize = 256;
+	mqd_t q_id = mq_open("/test.mq", O_CREAT | O_RDONLY, 0664, &attr );
 	if( -1 == q_id ) {
-		perror("msgget");
-		return -1;
+		perror("mq_open");
 	}
-	
-	char buffer[100] = { 0 };
-	
-	ssize_t nb = msgrcv(q_id, buffer, sizeof(buffer), 0, 0);
-	
-	if( -1 == nb ) {
-		perror("msgrcv");
-	} else if(nb > 0) {
+
+	long buffer_size = attr.mq_msgsize + 1;
+	char* memory = malloc( buffer_size );
+	memset(memory, 0, buffer_size);
+	ssize_t nb =  mq_receive(q_id, memory, buffer_size - 1, NULL);
+
+	if( nb > 0 ) {
 		FILE* file = fopen("/home/box/message.txt", "w+");
-		if( !file ) {
-			perror("fopen");
-		} else {
-			fprintf(file, "%s", buffer);
-			fclose(file);
-		}
+		fprintf(file, "%s", &memory[0]);
+		fclose(file);
+	} else {
+		perror("mq_receive");
 	}
-	msgctl(q_id, IPC_RMID, NULL);
+	free(memory);
+	mq_close(q_id);
+	mq_unlink("/test.mq");
 	return 0;
 }
-
-
-
-
