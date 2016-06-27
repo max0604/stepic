@@ -1,28 +1,45 @@
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
 
-const int semaphore_nb = 16;
+const int length = 1024*1024;
 
 int main()
 {
-	key_t key = ftok("/tmp/sem.temp", 1);
-
-	int sem_set_id = semget(key, semaphore_nb, IPC_CREAT);
-	if( -1 == sem_set_id ) {
-		perror("semget");
+	shm_unlink("test.shm");
+	int fd = shm_open("test.shm", O_CREAT | O_EXCL | O_RDWR, 0666);
+	if(-1 == fd) {
+		perror("shm_open");
+		return -1;
 	}
-	
-	unsigned short args[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+	int res = ftruncate(fd, length);
+	if(-1 == res) {
+		perror("ftruncate");
+	}
 
-	int res = semctl( sem_set_id, 0, SETALL, args );
+	char* ptr = mmap(NULL, length, PROT_WRITE, MAP_SHARED, fd, 0);
+	if( (void*)-1 == ptr ) {
+		perror("mmap");
+		return -1;
+	}
+
+	memset(ptr, 13, length);
 	
-	
-	res = semctl(sem_set_id, 0, IPC_RMID, 0);
-	if( -1 == res ) {
-		perror("semctl IPC_RMID");
+	res = munmap(ptr, length);
+	if(-1 == res) {
+		perror("munmap");
+		return -1;
+	}
+
+	res = shm_unlink("test.shm"); 
+	if(-1 == res) {
+		perror("sem_unlink");
+		return -1;
 	}
 	return 0;
 }
