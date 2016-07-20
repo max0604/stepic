@@ -15,7 +15,7 @@
 #include <boost/lexical_cast.hpp>
 #include "server.hpp"
 
-int main(int argc, char* argv[])
+int mainCycle(int argc, char* argv[])
 {
   try
   {
@@ -44,4 +44,50 @@ int main(int argc, char* argv[])
 
   return 0;
 }
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <signal.h>
+
+static sig_atomic_t EXIT = 0;
+
+void sig_handler( int signo ) {
+	EXIT = 1;
+}
+
+int main(int argc, char* argv[])
+{	
+	pid_t child_pid = fork();
+
+	if( child_pid < 0 ) {
+		printf("Programm can not demonize\n");
+		return -1;
+	}
+	
+	if( child_pid ) 
+		exit(0);
+	
+	umask(0);
+
+	setsid();
+
+	chdir("/");
+
+//	printf("%d\n", getpid());
+
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+
+	signal( SIGURG, sig_handler );
+
+	mainCycle(argc, argv);
+
+	return 0;	
+}
+
 
