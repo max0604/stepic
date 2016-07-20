@@ -1,35 +1,47 @@
-#include <sys/types.h>
-#include <unistd.h>
-#include <cstdio>
-#include <pthread.h>
+//
+// main.cpp
+// ~~~~~~~~
+//
+// Copyright (c) 2003-2012 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-pthread_barrier_t barrier;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_t cond_thread, barrier_thread;
+#include <iostream>
+#include <string>
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
+#include "server.hpp"
 
-void* m_r(void*) { 
-        while(true) { pthread_cond_wait(&cond, &mutex); };
-}
-
-void* s_r(void*) {
-        while(true) { pthread_barrier_wait(&barrier); };
-}
-
-int main()
+int main(int argc, char* argv[])
 {
-        pid_t pid = getpid();
-        FILE* file = fopen("/home/box/main.pid", "w+");
-        if(!file) { perror("fopen"); }
-        fprintf(file, "%d\n", pid);
-        fclose(file);
+  try
+  {
+    // Check command line arguments.
+    if (argc != 5)
+    {
+      std::cerr << "Usage: http_server <address> <port> <threads> <doc_root>\n";
+      std::cerr << "  For IPv4, try:\n";
+      std::cerr << "    receiver 0.0.0.0 80 1 .\n";
+      std::cerr << "  For IPv6, try:\n";
+      std::cerr << "    receiver 0::0 80 1 .\n";
+      return 1;
+    }
 
-//	pthread_mutex_lock(&mutex);
-	pthread_barrier_init(&barrier, NULL, 1);
+    // Initialise the server.
+    std::size_t num_threads = boost::lexical_cast<std::size_t>(argv[3]);
+    http::server3::server s(argv[1], argv[2], argv[4], num_threads);
 
-	pthread_create(&cond_thread, NULL, m_r, NULL);
-	pthread_create(&barrier_thread, NULL, m_r, NULL);
+    // Run the server until stopped.
+    s.run();
+  }
+  catch (std::exception& e)
+  {
+    std::cerr << "exception: " << e.what() << "\n";
+  }
 
-	while(true) {sleep(1);}
-
+  return 0;
 }
+
