@@ -107,9 +107,12 @@ std::vector<boost::asio::const_buffer> reply::to_buffers()
   for (std::size_t i = 0; i < headers.size(); ++i)
   {
     header& h = headers[i];
-    buffers.push_back(boost::asio::buffer(h.name));
-    buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
-    buffers.push_back(boost::asio::buffer(h.value));
+    if( h.name.size() > 0 ) {
+	    buffers.push_back(boost::asio::buffer(h.name));
+	    buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
+	    buffers.push_back(boost::asio::buffer(h.value));
+    }
+
     buffers.push_back(boost::asio::buffer(misc_strings::crlf));
   }
   buffers.push_back(boost::asio::buffer(misc_strings::crlf));
@@ -247,8 +250,8 @@ reply reply::stock_reply(reply::status_type status)
   rep.headers.resize(2);
   rep.headers[0].name = "Content-Length";
   rep.headers[0].value = "0";//boost::lexical_cast<std::string>(rep.content.size());
-  rep.headers[1].name = "Content-Type";
-  rep.headers[1].value = "text/html";
+  rep.headers[1].name = "";//"Content-Type";
+  rep.headers[1].value = "";//"text/html";
   return rep;
 }
 
