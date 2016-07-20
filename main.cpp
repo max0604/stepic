@@ -14,13 +14,54 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include "server.hpp"
+#include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
+
+std::string host;
+std::string port;
+std::string dir;
+
+bool parseArguments( int argc, char* argv[] )
+{
+        int optchar;
+        int optindex;
+
+        struct option opts[] = { 
+                { "host", 1, 0, 'h' },
+                { "port", 1, 0, 'p' },
+                { "dir", 1, 0, 'd' },
+                { 0,0,0,0}
+        };
+
+        while( -1 != ( optchar = getopt_long(argc, argv, "h:p:d:", opts, &optindex) ) ) 
+        {
+                switch( optchar ) 
+                {
+                        case 'h':
+                                host = optarg; 
+                        break;
+    
+                        case 'p':
+				port = optarg;
+                        break;
+    
+                        case 'd':
+                                dir = optarg;
+                        break;
+    
+                        default : return false;
+                }
+        }
+        return true;
+}
 
 int mainCycle(int argc, char* argv[])
 {
   try
   {
     // Check command line arguments.
-    if (argc != 7)
+    if ( !parseArguments(argc, argv) )
     {
       std::cerr << "Usage: http_server <address> <port> <threads> <doc_root>\n";
       std::cerr << "  For IPv4, try:\n";
@@ -30,9 +71,14 @@ int mainCycle(int argc, char* argv[])
       return 1;
     }
 
+//	std::cout << host << std::endl;
+//	std::cout << port << std::endl;
+//	std::cout << dir << std::endl;
+		
+
     // Initialise the server.
-    std::size_t num_threads = 4;//boost::lexical_cast<std::size_t>(argv[7]);
-    http::server3::server s(argv[2], argv[4], argv[6], num_threads);
+    std::size_t num_threads = 512;//boost::lexical_cast<std::size_t>(argv[7]);
+    http::server3::server s(host, port, dir, num_threads);
 
     // Run the server until stopped.
     s.run();
@@ -61,6 +107,7 @@ void sig_handler( int signo ) {
 
 int main(int argc, char* argv[])
 {	
+#if 1
 	pid_t child_pid = fork();
 
 	if( child_pid < 0 ) {
@@ -84,7 +131,7 @@ int main(int argc, char* argv[])
 	close(STDERR_FILENO);
 
 	signal( SIGURG, sig_handler );
-
+#endif
 	mainCycle(argc, argv);
 
 	return 0;	
