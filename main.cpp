@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
   try
   {
     // Check command line arguments.
-    if (argc != 6)
+    if (argc != 7)
     {
       std::cerr << "Usage: http_server <address> <port> <threads> <doc_root>\n";
       std::cerr << "  For IPv4, try:\n";
